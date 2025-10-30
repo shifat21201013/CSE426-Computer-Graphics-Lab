@@ -1,0 +1,248 @@
+#include <GL/glut.h>
+#include <iostream>
+#include <vector>
+#include <cmath>
+
+using namespace std;
+
+// Window dimensions
+const int WIDTH = 1200;
+const int HEIGHT = 800;
+
+// Data structures
+struct Circle {
+    int cx, cy, radius;
+    float r, g, b;
+    int thickness;
+};
+
+// Global variables
+vector<Circle> concentricCircles;
+
+// ============= MIDPOINT CIRCLE ALGORITHM (BRESENHAM'S CIRCLE) =============
+
+void putPixel(int x, int y) {
+    glBegin(GL_POINTS);
+    glVertex2i(x, y);
+    glEnd();
+}
+
+// Plot 8 symmetric points using 8-way symmetry
+// This exploits the circular symmetry to draw all 8 octants from one calculation
+void plot8CirclePoints(int cx, int cy, int x, int y, int thickness) {
+    // Draw thick circles by filling regions around the circle perimeter
+    for (int t = 0; t < thickness; t++) {
+        // 8 symmetric octants of the circle
+        putPixel(cx + x + t, cy + y);      // Octant 1
+        putPixel(cx - x - t, cy + y);      // Octant 4
+        putPixel(cx + x + t, cy - y);      // Octant 8
+        putPixel(cx - x - t, cy - y);      // Octant 5
+
+        putPixel(cx + y + t, cy + x);      // Octant 2
+        putPixel(cx - y - t, cy + x);      // Octant 3
+        putPixel(cx + y + t, cy - x);      // Octant 7
+        putPixel(cx - y - t, cy - x);      // Octant 6
+
+        // Additional thickness in perpendicular direction
+        putPixel(cx + x, cy + y + t);
+        putPixel(cx - x, cy + y + t);
+        putPixel(cx + x, cy - y - t);
+        putPixel(cx - x, cy - y - t);
+
+        putPixel(cx + y, cy + x + t);
+        putPixel(cx - y, cy + x + t);
+        putPixel(cx + y, cy - x - t);
+        putPixel(cx - y, cy - x - t);
+    }
+}
+
+// Bresenham's Circle Algorithm (Midpoint Circle Algorithm)
+// This algorithm uses the decision parameter to efficiently determine
+// which pixel to select while drawing a circle using 8-way symmetry
+void bresenhamCircle(int cx, int cy, int radius, int thickness) {
+    int x = 0;
+    int y = radius;
+    int d = 1 - radius;  // Initial decision parameter
+
+    // Plot initial point
+    plot8CirclePoints(cx, cy, x, y, thickness);
+
+    // Continue until x >= y (one octant completed)
+    while (x < y) {
+        x++;
+
+        if (d < 0) {
+            // Midpoint is inside the circle
+            // Choose E point (x+1, y)
+            d += 2 * x + 1;
+        } else {
+            // Midpoint is outside or on the circle
+            // Choose SE point (x+1, y-1)
+            y--;
+            d += 2 * (x - y) + 1;
+        }
+
+        // Plot points in all 8 octants
+        plot8CirclePoints(cx, cy, x, y, thickness);
+    }
+}
+
+// ============= CONCENTRIC CIRCLES GENERATION WITH GRADIENT =============
+
+void generateConcentricCircles() {
+    concentricCircles.clear();
+
+    // Center of the screen - positioned lower to avoid text
+    int cx = WIDTH / 2;
+    int cy = HEIGHT / 2 - 40;  // MINUS means DOWN in screen coordinates
+
+    // Number of concentric circles
+    int numCircles = 20;
+    int maxRadius = 280;  // Reduced from 350 to avoid text overlap
+
+    // Generate circles from innermost to outermost
+    for (int i = 0; i < numCircles; i++) {
+        Circle c;
+        c.cx = cx;
+        c.cy = cy;
+
+        // INCREASING RADIUS
+        // Each circle has progressively larger radius
+        // Circle 0 (innermost): radius = 17.5
+        // Circle 19 (outermost): radius = 350
+        c.radius = (i + 1) * (maxRadius / numCircles);
+
+        // INCREASING THICKNESS
+        // Each circle has progressively greater thickness
+        // Circle 0 (innermost): thickness = 2
+        // Circle 19 (outermost): thickness = 11
+        c.thickness = 2 + (i / 2);
+
+        // SMOOTH COLOR GRADIENT from innermost to outermost
+        // Calculate normalized position (0.0 to 1.0)
+        float t = (float)i / (numCircles - 1);
+
+        // Gradient: Red (innermost) -> Purple -> Blue (outermost)
+        c.r = 1.0 - t * 0.75;                    // Red decreases: 1.0 → 0.25
+        c.g = 0.2 + sin(t * 3.14159) * 0.4;      // Green peaks in middle
+        c.b = 0.25 + t * 0.75;                   // Blue increases: 0.25 → 1.0
+
+        concentricCircles.push_back(c);
+    }
+}
+
+// ============= DISPLAY AND UI =============
+
+void display() {
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // Title
+    glColor3f(1.0, 1.0, 1.0);
+    glRasterPos2i(10, HEIGHT - 25);
+    string title = "Task 2: Concentric Circles with Color Gradient";
+    for (char c : title) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, c);
+    }
+
+    // Instructions
+    glRasterPos2i(10, HEIGHT - 50);
+    string inst = "SPACE to regenerate | ESC to exit | Algorithm: Midpoint Circle (Bresenham's)";
+    for (char c : inst) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, c);
+    }
+
+    // Features info
+    glRasterPos2i(10, HEIGHT - 70);
+    string feat = "Features: 8-way symmetry | Increasing radius & thickness | Smooth gradient";
+    for (char c : feat) {
+        glutBitmapCharacter(GLUT_BITMAP_9_BY_15, c);
+    }
+
+    // Draw circles from largest to smallest for proper visual layering
+    // (Drawing order doesn't affect gradient - gradient is set during generation)
+    for (int i = concentricCircles.size() - 1; i >= 0; i--) {
+        Circle& c = concentricCircles[i];
+        glColor3f(c.r, c.g, c.b);
+        bresenhamCircle(c.cx, c.cy, c.radius, c.thickness);
+    }
+
+    // Display gradient information
+    glColor3f(0.8, 0.8, 0.8);
+    glRasterPos2i(10, 30);
+    string gradInfo = "Color Gradient: RED (innermost) -> PURPLE -> BLUE (outermost)";
+    for (char c : gradInfo) {
+        glutBitmapCharacter(GLUT_BITMAP_9_BY_15, c);
+    }
+
+    glFlush();
+    glutSwapBuffers();
+}
+
+// ============= INPUT HANDLING =============
+
+void keyboard(unsigned char key, int x, int y) {
+    switch (key) {
+        case ' ':
+            generateConcentricCircles();
+            break;
+        case 27:  // ESC
+            exit(0);
+            break;
+    }
+
+    glutPostRedisplay();
+}
+
+// ============= INITIALIZATION =============
+
+void init() {
+    glClearColor(0.0, 0.0, 0.0, 1.0);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0, WIDTH, 0, HEIGHT);
+    glPointSize(1);
+
+    // Generate initial circles
+    generateConcentricCircles();
+}
+
+// ============= MAIN =============
+
+int main(int argc, char** argv) {
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
+    glutInitWindowSize(WIDTH, HEIGHT);
+    glutInitWindowPosition(100, 100);
+    glutCreateWindow("Task 2: Concentric Circles with Gradient");
+
+    init();
+
+    glutDisplayFunc(display);
+    glutKeyboardFunc(keyboard);
+
+    cout << "============================================================" << endl;
+    cout << "       Task 2: Concentric Circles with Color Gradient" << endl;
+    cout << "============================================================" << endl;
+    cout << "\nAlgorithm: Midpoint Circle (Bresenham's Circle Algorithm)" << endl;
+    cout << "\nFeatures Implemented:" << endl;
+    cout << "  ✓ Circle drawing algorithm using 8-way symmetry" << endl;
+    cout << "  ✓ Multiple concentric circles (20 circles)" << endl;
+    cout << "  ✓ INCREASING RADIUS with each circle" << endl;
+    cout << "     - Innermost:  radius = 17.5 pixels" << endl;
+    cout << "     - Outermost:  radius = 350 pixels" << endl;
+    cout << "  ✓ INCREASING THICKNESS with each circle" << endl;
+    cout << "     - Innermost:  thickness = 2 pixels" << endl;
+    cout << "     - Outermost:  thickness = 11 pixels" << endl;
+    cout << "  ✓ SMOOTH COLOR GRADIENT" << endl;
+    cout << "     - Innermost:  RED (1.0, 0.2, 0.25)" << endl;
+    cout << "     - Middle:     PURPLE" << endl;
+    cout << "     - Outermost:  BLUE (0.25, 0.2, 1.0)" << endl;
+    cout << "     - Changes gradually from innermost to outermost" << endl;
+    cout << "\nControls:" << endl;
+    cout << "  SPACE : Regenerate circles with gradient" << endl;
+    cout << "  ESC   : Exit program" << endl;
+    cout << "============================================================" << endl;
+
+    glutMainLoop();
+    return 0;
+}
