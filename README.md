@@ -12,7 +12,7 @@
 - Handles all line orientations (positive/negative slopes, vertical, horizontal)
 - Extension for thick lines using 4-way and 8-way symmetry
 
-**Solution Link:** [task01_Bresenham_Line/bresenham_line.cpp](task01_Bresenham_Line/bresenham_line.cpp)
+**Solution Link:** [https://github.com/shifat21201013/CSE426-Computer-Graphics-Lab/blob/main/Task01_Bresenham_Line]
 
 ---
 
@@ -23,7 +23,7 @@
 - Draws multiple concentric circles with increasing radius and thickness
 - Smooth color gradient from innermost to outermost circle
 
-**Solution Link:** [task02_Concentric_Circles/concentric_circles.cpp](task02_Concentric_Circles/concentric_circles.cpp)
+**Solution Link:** [https://github.com/shifat21201013/CSE426-Computer-Graphics-Lab/blob/main/Task02_Concentric_Circles]
 
 ---
 
@@ -34,7 +34,7 @@
 - Clips multiple line segments against rectangular window
 - Displays original and clipped portions in different colors
 
-**Solution Link:** [task03_Liang_Barsky_Clipping/liang_barsky_clipping.cpp](task03_Liang_Barsky_Clipping/liang_barsky_clipping.cpp)
+**Solution Link:** [https://github.com/shifat21201013/CSE426-Computer-Graphics-Lab/blob/main/Task03_Liang_Barsky_Clipping]
 
 ---
 
